@@ -40,7 +40,11 @@ function a11yProps(index) {
   };
 }
 
-export default function BasicTabs({ customerData, setAlertMessageData }) {
+export default function BasicTabs({
+  customerData,
+  setAlertMessageData,
+  ticketsData,
+}) {
   const [value, setValue] = React.useState(0);
 
   const handleChange = (event, newValue) => {
@@ -60,7 +64,7 @@ export default function BasicTabs({ customerData, setAlertMessageData }) {
           <Tab label="Tickets" {...a11yProps(2)} />
         </Tabs>
       </Box>
-      <TabPanel value={value} index={0} >
+      <TabPanel value={value} index={0}>
         {customerData
           .filter((customer) => customer.userTypes === "CUSTOMER")
           .map((customer, index) => {
@@ -70,7 +74,7 @@ export default function BasicTabs({ customerData, setAlertMessageData }) {
                 key={customer.userId}
                 data={customer}
                 index={index}
-                setAlertMessageData = {(data)=>setAlertMessageData(data)}
+                setAlertMessageData={(data) => setAlertMessageData(data)}
               />
             );
           })}
@@ -85,13 +89,13 @@ export default function BasicTabs({ customerData, setAlertMessageData }) {
                 key={customer.userId}
                 data={customer}
                 index={index}
-                setAlertMessageData = {(data)=>setAlertMessageData(data)}
+                setAlertMessageData={(data) => setAlertMessageData(data)}
               />
             );
           })}
       </TabPanel>
       <TabPanel value={value} index={2}>
-        {demoTicketData.map((ticket, index) => {
+        {ticketsData.map((ticket, index) => {
           return (
             <ImgMediaCard
               type="ticket"

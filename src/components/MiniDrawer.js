@@ -25,6 +25,7 @@ import Popup from "./Popup";
 import { Dashboard } from "../pages/Dashbaord";
 import { Profile } from "../pages/Profile";
 import Radio from "@mui/material/Radio";
+import { Navigate } from "react-router-dom";
 import {
   RadioGroup,
   FormControl,
@@ -125,7 +126,9 @@ export default function MiniDrawer() {
   const [popupType, setPopupType] = useState("");
   const [selectedTicket, setSelectedTicket] = useState("");
   const [openLogin, setOpenLogin] = useState(false);
-  const [statusFilter, setStatusFilter] = useState("OPEN");
+  const [statusFilter, setStatusFilter] = useState(
+    window.location.href.split("/")[window.location.href.split("/").length - 1]
+  );
   const [userData, setUserData] = useState(null);
   const [alertMessage, setAlertMessage] = useState("");
   const [snackBarOpen, setSnackbarOpen] = useState(false);
@@ -146,9 +149,9 @@ export default function MiniDrawer() {
   const handlePopupClose = (data) => {
     const UserLoginInfo = JSON.parse(sessionStorage.getItem("userData"));
     console.log(data);
-    if(data.actionType==="close"){
+    if (data.actionType === "close") {
       setPopupType("");
-          setOpenLogin(false);
+      setOpenLogin(false);
     }
     if (data.actionType === "createTicket") {
       const ticketData = { title: data.title, description: data.description };
@@ -163,20 +166,41 @@ export default function MiniDrawer() {
         .then((response) => response.json())
         .then((data) => {
           console.log("Success:", data);
-          if(!data.id){
+          if (!data.id) {
             setAlertMessage(data.message);
             setSnackbarOpen(true);
-          }
-          else{
+          } else {
             setAlertMessage(`Ticket created with id ${data.id}`);
-         
-        }
-        setPopupType("");
-        setOpenLogin(false);
+            fetch(getAllTickets, {
+              headers: {
+                "Content-Type": "application/json",
+                "x-access-token": userData?.accessToken,
+              },
+            })
+              .then((res) => res.json())
+              .then(
+                (result) => {
+                  setTicketsData(result);
+                  setTimeout(() => {
+                    setStatusFilter(statusFilter===""?"OPEN":"");
+                  }, 1000);
+                },
+                // Note: it's important to handle errors here
+                // instead of a catch() block so that we don't swallow
+                // exceptions from actual bugs in components.
+                (error) => {
+                  setTicketsData(
+                    demoTicketData.filter((ticket) => ticket.status === "OPEN")
+                  );
+                }
+              );
+          }
         })
         .catch((error) => {
           console.error("Error:", error);
         });
+      setPopupType("");
+      setOpenLogin(false);
     } else if (data.actionType === "updateTicket") {
       const ticketData = {
         title: data.title,
@@ -195,10 +219,37 @@ export default function MiniDrawer() {
         .then((response) => response.json())
         .then((data) => {
           console.log("Success:", data);
+          setAlertMessage(`Ticket updated Successfully.`);
+          setSnackbarOpen(true);
+          fetch(getAllTickets, {
+            headers: {
+              "Content-Type": "application/json",
+              "x-access-token": userData?.accessToken,
+            },
+          })
+            .then((res) => res.json())
+            .then(
+              (result) => {
+                setTicketsData(result);
+                setTimeout(() => {
+                  setStatusFilter(statusFilter===""?"OPEN":"");
+                }, 1000);
+              },
+              // Note: it's important to handle errors here
+              // instead of a catch() block so that we don't swallow
+              // exceptions from actual bugs in components.
+              (error) => {
+                setTicketsData(
+                  demoTicketData.filter((ticket) => ticket.status === "OPEN")
+                );
+              }
+            );
         })
         .catch((error) => {
           console.error("Error:", error);
         });
+      setPopupType("");
+      setOpenLogin(false);
     } else if (data.actionType === "login") {
       const logindetails = { userId: data.userId, password: data.password };
       fetch(signin, {
@@ -211,16 +262,15 @@ export default function MiniDrawer() {
         .then((response) => response.json())
         .then((data) => {
           console.log("Success:", data);
-          if(!data.name){
+          if (!data.name) {
             setAlertMessage(data.message);
             setSnackbarOpen(true);
+          } else {
+            sessionStorage.setItem("userData", JSON.stringify(data));
+            setUserData(data);
+            setPopupType("");
+            setOpenLogin(false);
           }
-          else{
-          sessionStorage.setItem("userData", JSON.stringify(data));
-          setUserData(data);
-          setPopupType("");
-          setOpenLogin(false);
-        }
         })
         .catch((error) => {
           setSnackbarOpen(true);
@@ -245,16 +295,15 @@ export default function MiniDrawer() {
         .then((response) => response.json())
         .then((data) => {
           console.log("Success:", data);
-          if(!data.name){
+          if (!data.name) {
             setAlertMessage(data.message);
             setSnackbarOpen(true);
-          }
-          else{
+          } else {
             setAlertMessage(
               `Registered Successfully ${data.name}, Please Refresh and Login to Continue.`
             );
-          setSnackbarOpen(true);
-        }
+            setSnackbarOpen(true);
+          }
         })
         .catch((error) => {
           console.error("Error:", error);
@@ -268,7 +317,7 @@ export default function MiniDrawer() {
 
   useEffect(() => {
     // const UserData = JSON.parse(sessionStorage.getItem("userData"));
-    if (userData!==null) {
+    if (userData !== null) {
       fetch(getAllTickets, {
         headers: {
           "Content-Type": "application/json",
@@ -278,8 +327,7 @@ export default function MiniDrawer() {
         .then((res) => res.json())
         .then(
           (result) => {
-            setTicketsData(result)
-            setisTicketsLoaded(true);
+            setTicketsData(result);
           },
           // Note: it's important to handle errors here
           // instead of a catch() block so that we don't swallow
@@ -288,34 +336,30 @@ export default function MiniDrawer() {
             setTicketsData(
               demoTicketData.filter((ticket) => ticket.status === "OPEN")
             );
-            setisTicketsLoaded(true);
           }
         );
 
-        if(userData.userTypes==="ADMIN"){
-      fetch(getAllUsers, {
-        headers: {
-          "Content-Type": "application/json",
-          "x-access-token": userData?.accessToken,
-        },
-      })
-        .then((res) => res.json())
-        .then(
-          (result) => {
-            if (result.length > 0) setCustomersData(result);
-            else setCustomersData(demoCustomerData);
-
-            setisTicketsLoaded(true);
+      if (userData.userTypes === "ADMIN") {
+        fetch(getAllUsers, {
+          headers: {
+            "Content-Type": "application/json",
+            "x-access-token": userData?.accessToken,
           },
-          // Note: it's important to handle errors here
-          // instead of a catch() block so that we don't swallow
-          // exceptions from actual bugs in components.
-          (error) => {
-            setCustomersData(demoCustomerData);
-            setisTicketsLoaded(true);
-          }
-        );
-    }
+        })
+          .then((res) => res.json())
+          .then(
+            (result) => {
+              if (result.length > 0) setCustomersData(result);
+              else setCustomersData(demoCustomerData);
+            },
+            // Note: it's important to handle errors here
+            // instead of a catch() block so that we don't swallow
+            // exceptions from actual bugs in components.
+            (error) => {
+              setCustomersData(demoCustomerData);
+            }
+          );
+      }
     } else {
       handlePopupOpen("loginRegister");
     }
@@ -476,41 +520,44 @@ export default function MiniDrawer() {
             <hr />
             <Routes>
               <Route
-                path="/"
+                path="/:status"
                 element={
                   <React.Fragment>
                     <DrawerHeader />
-                    <FormControl>
-                      <FormLabel id="demo-radio-buttons-group-label">
-                        Status
-                      </FormLabel>
-                      <RadioGroup
-                        row
-                        aria-labelledby="demo-radio-buttons-group-label"
-                        defaultValue="OPEN"
-                        name="radio-buttons-group"
-                        onChange={(event) =>
-                          setStatusFilter(event.target.value)
-                        }
-                      >
-                        <FormControlLabel
-                          value=""
-                          control={<Radio />}
-                          label="ALL"
-                        />
-                        <FormControlLabel
-                          value="OPEN"
-                          control={<Radio />}
-                          label="OPEN"
-                        />
-                        <FormControlLabel
-                          value="CLOSED"
-                          control={<Radio />}
-                          label="CLOSED"
-                        />
-                      </RadioGroup>
-                    </FormControl>
+                    {ticketsData.length > 0 && (
+                      <FormControl>
+                        <FormLabel id="demo-radio-buttons-group-label">
+                          Status
+                        </FormLabel>
+                        <RadioGroup
+                          row
+                          aria-labelledby="demo-radio-buttons-group-label"
+                          value={statusFilter}
+                          name="radio-buttons-group"
+                          onChange={(event) =>
+                            setStatusFilter(event.target.value)
+                          }
+                        >
+                          <FormControlLabel
+                            value=""
+                            control={<Radio />}
+                            label="ALL"
+                          />
+                          <FormControlLabel
+                            value="OPEN"
+                            control={<Radio />}
+                            label="OPEN"
+                          />
+                          <FormControlLabel
+                            value="CLOSED"
+                            control={<Radio />}
+                            label="CLOSED"
+                          />
+                        </RadioGroup>
+                      </FormControl>
+                    )}
                     {statusFilter === "" &&
+                      ticketsData.length > 0 &&
                       ticketsData.map((ticket, index) => {
                         return (
                           <ImgMediaCard
@@ -526,6 +573,7 @@ export default function MiniDrawer() {
                         );
                       })}
                     {statusFilter !== "" &&
+                      ticketsData.length > 0 &&
                       ticketsData
                         .filter((ticket) => ticket.status === statusFilter)
                         .map((ticket, index) => {
@@ -542,19 +590,39 @@ export default function MiniDrawer() {
                             />
                           );
                         })}
+                    {ticketsData.length === 0 && <div>No tickets Assigned</div>}
+
                     {userData?.userTypes === "ADMIN" && (
-                      <BasicTabs customerData={customersData} 
-                      setAlertMessageData = {(message)=>{
-                        setAlertMessage(message);
-                        setSnackbarOpen(true);
-                      }}
+                      <BasicTabs
+                        customerData={customersData}
+                        ticketsData={ticketsData}
+                        setAlertMessageData={(message) => {
+                          setAlertMessage(message);
+                          setSnackbarOpen(true);
+                        }}
                       />
                     )}
                   </React.Fragment>
                 }
               ></Route>
               <Route path="/profile" element={<Profile />} />
-              <Route path="/dashboard" element={<Dashboard userData = {userData} openTicketsCount={ticketsData.filter((ticket)=>ticket.status==="OPEN").length} closedTicketsCount={ticketsData.filter((ticket)=>ticket.status==="CLOSED").length}/>} />
+              <Route
+                path="/dashboard"
+                element={
+                  <Dashboard
+                    userData={userData}
+                    openTicketsCount={
+                      ticketsData.filter((ticket) => ticket.status === "OPEN")
+                        .length
+                    }
+                    closedTicketsCount={
+                      ticketsData.filter((ticket) => ticket.status === "CLOSED")
+                        .length
+                    }
+                  />
+                }
+              />
+              <Route exact path="/" element={<Navigate to="/OPEN" />} />
             </Routes>
           </div>
         </Box>

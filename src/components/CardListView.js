@@ -1,6 +1,6 @@
 import React, { Fragment, useEffect, useState } from "react";
 import { Card, CardHeader, IconButton } from "@mui/material";
-import { Build, Close, Done, Person } from "@mui/icons-material";
+import { Build, Close, DateRange, Done, Person } from "@mui/icons-material";
 import { updateTicketById, updateUserInfo } from "../constants";
 import Tooltip from "@mui/material/Tooltip";
 
@@ -9,11 +9,11 @@ export default function ImgMediaCard({
   data,
   handlePopupOpen,
   setSelectedTicketData,
-  setAlertMessageData
+  setAlertMessageData,
 }) {
   //const [alertMessage,setAlertMessage] = useState(null);
   const userDataFromStorage = JSON.parse(sessionStorage.getItem("userData"));
-
+  const [cardUserdata, setCardUserData] = useState(data);
   // useEffect(()=>{
   //   if(alertMessage!=null){
   //     setAlertMessageData(alertMessage);
@@ -21,39 +21,43 @@ export default function ImgMediaCard({
   // },[alertMessage])
 
   const updateTicketorUser = (status) => {
-      const userData = {
-        name: data.name,
-        userId: data.userId,
-        email: data.email,
-        userTypes: data.userTypes,
-        userStatus: status,
-      };
-      fetch(updateUserInfo + `${data.userId}`, {
-        method: "PUT", // or 'PUT'
-        headers: {
-          "Content-Type": "application/json",
-          "x-access-token": userDataFromStorage?.accessToken,
-        },
-        body: JSON.stringify(userData),
+    const userData = {
+      name: data.name,
+      userId: data.userId,
+      email: data.email,
+      userTypes: data.userTypes,
+      userStatus: status,
+    };
+    fetch(updateUserInfo + `${data.userId}`, {
+      method: "PUT", // or 'PUT'
+      headers: {
+        "Content-Type": "application/json",
+        "x-access-token": userDataFromStorage?.accessToken,
+      },
+      body: JSON.stringify(userData),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("Success:", data);
+        setAlertMessageData(data.message);
+        setCardUserData({ ...cardUserdata, userStatus: status });
       })
-        .then((response) => response.json())
-        .then((data) => {
-          console.log("Success:", data);
-          setAlertMessageData(data.message);
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-          setAlertMessageData(error)
-        });
+      .catch((error) => {
+        console.error("Error:", error);
+        setAlertMessageData(error);
+      });
   };
 
   return (
-    <Card key={data.id} style={{ border: "1px solid #e3e3e3", margin: "4px" }}>
+    <Card
+      key={cardUserdata.id}
+      style={{ border: "1px solid #e3e3e3", margin: "4px" }}
+    >
       <CardHeader
         avatar={type === "ticket" ? <Build /> : <Person />}
         action={
           <Fragment>
-            {(type === "user" && data.userStatus === "PENDING") && (
+            {type === "user" && cardUserdata.userStatus === "PENDING" && (
               <Tooltip title="Approve">
                 <IconButton
                   aria-label="settings"
@@ -64,12 +68,12 @@ export default function ImgMediaCard({
                 </IconButton>
               </Tooltip>
             )}
-            {(type === "user" && data.userStatus === "PENDING") && (
+            {type === "user" && cardUserdata.userStatus === "PENDING" && (
               <Tooltip title="Decline">
                 <IconButton
                   aria-label="settings"
                   // disabled={(type==="user" && data.userStatus==="APPROVED") || (type==="ticket" && data.assignee)}
-                  onClick={() => updateTicketorUser("DECLINED")}
+                  onClick={() => updateTicketorUser("REJECTED")}
                 >
                   <Close color="error" />
                 </IconButton>
@@ -77,7 +81,7 @@ export default function ImgMediaCard({
             )}
           </Fragment>
         }
-        title={<h2>{data.title || data.name}</h2>}
+        title={<h2>{cardUserdata.title || cardUserdata.name}</h2>}
         subheader={
           <div
             onClick={() => {
@@ -94,19 +98,21 @@ export default function ImgMediaCard({
                 textOverflow: "ellipsis",
               }}
             >
-              {data.description || data.email}
+              {cardUserdata.description || cardUserdata.email}
             </h4>
             <p>
-              Status:<strong>{data.status || data.userStatus}</strong>{" "}
+              Status:
+              <strong>{cardUserdata.status || cardUserdata.userStatus}</strong>{" "}
             </p>
-            {data?.reporter && (
+            {cardUserdata?.reporter && (
               <span>
-                Reporter:<strong> {data.reporter}</strong>&nbsp;&nbsp;&nbsp;
+                Reporter:<strong> {cardUserdata.reporter}</strong>
+                &nbsp;&nbsp;&nbsp;
               </span>
             )}
-            {data?.assignee && (
+            {cardUserdata?.assignee && (
               <span>
-                Assignee:<strong> {data.assignee}</strong>
+                Assignee:<strong> {cardUserdata.assignee}</strong>
               </span>
             )}
           </div>

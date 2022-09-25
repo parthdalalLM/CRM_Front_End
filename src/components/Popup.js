@@ -45,7 +45,7 @@ export default function Popup({
   const [userData, setUserData] = useState(null);
   const [assignee, setAssignee] = useState(null);
   const [customersData, setCustomersData] = useState(demoCustomerData);
-  const [commentsData, setCommentsData] = useState(demoComments);
+  const [commentsData, setCommentsData] = useState([]);
   const [newComment, setNewComment] = useState("");
 
   useEffect(() => {
@@ -233,7 +233,7 @@ export default function Popup({
                   </FormLabel>
                   <RadioGroup
                     aria-labelledby="demo-radio-buttons-group-label"
-                    defaultValue="female"
+                    value={assignee}
                     name="radio-buttons-group"
                     onChange={(event) => {
                       setUserTypes(event.target.value);
